@@ -1,26 +1,13 @@
 services:
   - type: web
-    name: twitter-bot
-    env: 
-      PYTHONUNBUFFERED: "1"
-    buildCommand: ./setup.sh
-    startCommand: python auth.py
+    name: selenium-bot
+    runtime: python
+    region: oregon
+    plan: free
+    buildCommand: "./render-build.sh"
+    startCommand: "python auth.py"
     envVars:
-      - key: GMAIL_EMAIL
-        fromSecret: GMAIL_EMAIL
-      - key: GMAIL_PASSWORD
-        fromSecret: GMAIL_PASSWORD
-      # If you want to rotate or parameterize your proxy, you can also surface those as secrets:
-      - key: PROXY_HOST
-        fromSecret: PROXY_HOST
-      - key: PROXY_PORT
-        fromSecret: PROXY_PORT
-      - key: PROXY_USER
-        fromSecret: PROXY_USER
-      - key: PROXY_PASS
-        fromSecret: PROXY_PASS
-
-cronJobs:
-  - name: daily-run
-    schedule: "0 2 * * *"   # runs every day at 02:00 UTC
-    command: python auth.py
+      - key: CHROME_BIN
+        value: "chromium-browser"
+      - key: CHROMEDRIVER_PATH
+        value: "/chromedriver"
