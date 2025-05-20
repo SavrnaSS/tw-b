@@ -4,12 +4,15 @@ import random
 import re
 import imaplib
 import email as email_module
+
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
+
 import undetected_chromedriver as uc
+from webdriver_manager.chrome import ChromeDriverManager
 from gtts import gTTS
 
 # ---------------------------
@@ -30,9 +33,9 @@ def notify_captcha():
     os.system("mpg123 captcha.mp3")
 
 def setup_driver():
+    # 1) ChromeOptions
     options = Options()
-    # point to the headless Chromium binary
-    options.binary_location = "/usr/bin/chromium-browser"
+    options.binary_location = "/usr/bin/chromium-browser"        # ensure Chromium is installed
     options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
@@ -44,18 +47,22 @@ def setup_driver():
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/114.0.0.0 Safari/537.36"
     )
-    # apply authenticated proxy
-    proxy = f"{PROXY_HOST}:{PROXY_PORT}"
-    options.add_argument(f"--proxy-server=http://{PROXY_USER}:{PROXY_PASS}@{proxy}")
+    # proxy
+    options.add_argument(
+        f"--proxy-server=http://{PROXY_USER}:{PROXY_PASS}@{PROXY_HOST}:{PROXY_PORT}"
+    )
 
-    # specify both driver and browser executable paths
+    # 2) download/install matching chromedriver
+    driver_path = ChromeDriverManager().install()
+
+    # 3) launch undetected-chromedriver
     driver = uc.Chrome(
         options=options,
-        driver_executable_path="/usr/lib/chromium-browser/chromedriver",
+        driver_executable_path=driver_path,
         browser_executable_path="/usr/bin/chromium-browser"
     )
 
-    # stealth: hide webdriver flag
+    # stealth
     driver.execute_cdp_cmd(
         "Page.addScriptToEvaluateOnNewDocument",
         {"source": "Object.defineProperty(navigator, 'webdriver', {get: () => undefined});"}
@@ -92,8 +99,8 @@ def read_credentials(path="1st_step.txt"):
                     creds.append(block)
                     block = {}
             else:
-                key, val = line.split(":", 1)
-                block[key.lower().strip()] = val.strip()
+                k, v = line.split(":", 1)
+                block[k.lower().strip()] = v.strip()
     if block:
         creds.append(block)
     return creds
@@ -192,9 +199,7 @@ def main():
     print(f"📋 Found {len(creds)} accounts.")
     with open("completed.txt", "a") as done:
         for i, c in enumerate(creds, start=1):
-            email = c.get("email")
-            pwd   = c.get("password")
-            user  = c.get("username")
+            email = c.get("email"); pwd = c.get("password"); user = c.get("username")
             print(f"\n=== [{i}/{len(creds)}] {email} ===")
             driver = setup_driver()
             try:
