@@ -21,23 +21,13 @@ IMAP_SERVER    = "imap.gmail.com"
 # ---------------------------
 # Proxy settings (Authenticated)
 # ---------------------------
-# Proxy settings
 PROXY_HOST = "82.23.67.179"
 PROXY_PORT = "5437"
 PROXY_USER = "nftiuvfu"
 PROXY_PASS = "8ris7fu5rgrn"
-proxy_url = f"{PROXY_USER}:{PROXY_PASS}@{PROXY_HOST}:{PROXY_PORT}"
+# full proxy URL including scheme
+PROXY_URL = f"http://{PROXY_USER}:{PROXY_PASS}@{PROXY_HOST}:{PROXY_PORT}"
 
-def setup_driver():
-    proxy_url = f"{PROXY_USER}:{PROXY_PASS}@{PROXY_HOST}:{PROXY_PORT}"
-
-    seleniumwire_options = {
-        'proxy': {
-            'http': f"http://{proxy_url}",
-            'https': f"https://{proxy_url}",
-            'no_proxy': 'localhost,127.0.0.1'
-        }
-    }
 # ---------------------------
 # TTS Notification
 # ---------------------------
@@ -65,13 +55,12 @@ def setup_driver():
 
     seleniumwire_opts = {
         "proxy": {
-            "http":  proxy_url,
-            "https": proxy_url,
+            "http":  PROXY_URL,
+            "https": PROXY_URL,
             "no_proxy": "localhost,127.0.0.1"
         }
     }
 
-    # Use the local chromedriver binary
     service = Service(executable_path=os.path.join(os.getcwd(), "chromedriver"))
 
     driver = webdriver.Chrome(
@@ -80,7 +69,7 @@ def setup_driver():
         seleniumwire_options=seleniumwire_opts
     )
 
-    # Hide the webdriver flag from JavaScript
+    # hide webdriver flag
     driver.execute_cdp_cmd(
         "Page.addScriptToEvaluateOnNewDocument",
         {"source": "Object.defineProperty(navigator, 'webdriver', {get: () => undefined});"}
@@ -136,17 +125,14 @@ def login_twitter(driver, user, pwd):
     driver.get("https://twitter.com/login")
     wait = WebDriverWait(driver, 30)
 
-    # Enter username/email
     fld = wait.until(EC.presence_of_element_located((By.XPATH, "//input[@autocomplete='username']")))
     fld.clear(); fld.send_keys(user)
     wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='Next']"))).click()
 
-    # Enter password
     fld = wait.until(EC.presence_of_element_located((By.XPATH, "//input[@autocomplete='current-password']")))
     fld.clear(); fld.send_keys(pwd)
     wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='Log in']"))).click()
 
-    # Handle OTP prompt
     try:
         wait.until(EC.presence_of_element_located((By.XPATH, "//*[contains(text(),'Check your email')]")))
         otp = get_latest_otp_imap()
