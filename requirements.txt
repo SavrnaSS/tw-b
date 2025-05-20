@@ -1,4 +1,4 @@
 selenium==4.20.0
-selenium-wire==5.0.0
 undetected-chromedriver==3.5.5
 gTTS==2.4.0
+webdriver-manager==4.0.2
