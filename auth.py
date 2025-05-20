@@ -1,35 +1,39 @@
-import time
 import os
-import random
 import re
+import time
+import random
 import imaplib
 from gtts import gTTS
-from seleniumwire import webdriver           # for authenticated proxy
+from seleniumwire import webdriver  # For proxy support
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
+from webdriver_manager.chrome import ChromeDriverManager
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # ---------------------------
 # Gmail IMAP Config (from .env)
 # ---------------------------
-GMAIL_EMAIL    = os.getenv("GMAIL_EMAIL")      # set in your .env or Render env vars
-GMAIL_PASSWORD = os.getenv("GMAIL_PASSWORD")   # use an app password for Gmail
-IMAP_SERVER    = "imap.gmail.com"
+GMAIL_EMAIL = os.getenv("GMAIL_EMAIL")
+GMAIL_PASSWORD = os.getenv("GMAIL_PASSWORD")
+IMAP_SERVER = "imap.gmail.com"
 
 # ---------------------------
-# Proxy settings (Authenticated)
+# Proxy Config (authenticated)
 # ---------------------------
 PROXY_HOST = "82.23.67.179"
 PROXY_PORT = "5437"
 PROXY_USER = "nftiuvfu"
 PROXY_PASS = "8ris7fu5rgrn"
-# full proxy URL including scheme
-PROXY_URL = f"http://{PROXY_USER}:{PROXY_PASS}@{PROXY_HOST}:{PROXY_PORT}"
+proxy_url = f"{PROXY_USER}:{PROXY_PASS}@{PROXY_HOST}:{PROXY_PORT}"
 
 # ---------------------------
-# TTS Notification
+# Text-to-Speech Notifier
 # ---------------------------
 def notify_captcha():
     tts = gTTS("2nd solve it!")
@@ -37,11 +41,11 @@ def notify_captcha():
     os.system("mpg123 /tmp/captcha.mp3")
 
 # ---------------------------
-# WebDriver Factory
+# WebDriver Setup
 # ---------------------------
 def setup_driver():
     chrome_opts = webdriver.ChromeOptions()
-    chrome_opts.add_argument("--headless=new")
+    chrome_opts.add_argument("--headless=new")  # Remove 'new' if you face issues
     chrome_opts.add_argument("--disable-gpu")
     chrome_opts.add_argument("--no-sandbox")
     chrome_opts.add_argument("--disable-dev-shm-usage")
@@ -55,25 +59,24 @@ def setup_driver():
 
     seleniumwire_opts = {
         "proxy": {
-            "http":  PROXY_URL,
-            "https": PROXY_URL,
+            "http": f"http://{proxy_url}",
+            "https": f"https://{proxy_url}",
             "no_proxy": "localhost,127.0.0.1"
         }
     }
 
-    service = Service(executable_path=os.path.join(os.getcwd(), "chromedriver"))
-
     driver = webdriver.Chrome(
-        service=service,
+        service=Service(ChromeDriverManager().install()),
         options=chrome_opts,
         seleniumwire_options=seleniumwire_opts
     )
 
-    # hide webdriver flag
+    # Bypass navigator.webdriver flag
     driver.execute_cdp_cmd(
         "Page.addScriptToEvaluateOnNewDocument",
         {"source": "Object.defineProperty(navigator, 'webdriver', {get: () => undefined});"}
     )
+
     return driver
 
 # ---------------------------
@@ -82,7 +85,7 @@ def setup_driver():
 def read_credentials(path="1st_step.txt"):
     creds = []
     block = {}
-    for line in open(path, "r").read().splitlines():
+    for line in open(path).read().splitlines():
         if not line.strip() or line.startswith("-"):
             if block:
                 creds.append(block)
@@ -125,26 +128,32 @@ def login_twitter(driver, user, pwd):
     driver.get("https://twitter.com/login")
     wait = WebDriverWait(driver, 30)
 
+    # Email
     fld = wait.until(EC.presence_of_element_located((By.XPATH, "//input[@autocomplete='username']")))
-    fld.clear(); fld.send_keys(user)
+    fld.clear()
+    fld.send_keys(user)
     wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='Next']"))).click()
 
+    # Password
     fld = wait.until(EC.presence_of_element_located((By.XPATH, "//input[@autocomplete='current-password']")))
-    fld.clear(); fld.send_keys(pwd)
+    fld.clear()
+    fld.send_keys(pwd)
     wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='Log in']"))).click()
 
+    # OTP Handling
     try:
         wait.until(EC.presence_of_element_located((By.XPATH, "//*[contains(text(),'Check your email')]")))
         otp = get_latest_otp_imap()
         if otp:
             fld = wait.until(EC.presence_of_element_located((By.XPATH, "//input[@data-testid='ocfEnterTextTextInput']")))
-            fld.clear(); fld.send_keys(otp)
+            fld.clear()
+            fld.send_keys(otp)
             wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='Next']"))).click()
     except TimeoutException:
         pass
 
 # ---------------------------
-# Main
+# Main Execution
 # ---------------------------
 if __name__ == "__main__":
     creds = read_credentials()
