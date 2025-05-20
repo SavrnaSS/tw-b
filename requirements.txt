@@ -18,6 +18,7 @@ pycparser==2.22
 pyOpenSSL==25.1.0
 pyparsing==3.2.3
 pyttsx3; sys_platform == 'darwin'
+gTTS==2.4.0    # cross-platform TTS for Linux
 requests==2.32.3
 selenium==4.32.0
 selenium-wire==5.1.0
