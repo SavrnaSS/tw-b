@@ -1,0 +1,17 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+venv/
+.env
+
+# IDE files
+.vscode/
+.DS_Store
+
+# Logs and outputs
+*.log
+completed.txt
+2nd_step.txt
+
+# Mac filesystem
+Thumbs.db
