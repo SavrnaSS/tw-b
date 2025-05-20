@@ -14,15 +14,14 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
 import email as email_module
 from selenium.common.exceptions import TimeoutException
-import pyttsx3
 import undetected_chromedriver as uc
-
+from gtts import gTTS
 
 def notify_captcha():
-        engine = pyttsx3.init()
-        engine.say("2nd solve it!")
-        engine.runAndWait()
-
+    tts = gTTS("2nd solve it!")
+    tts.save("captcha.mp3")
+    os.system("mpg123 captcha.mp3")  # or another Linux player
+    
 # ---------------------------
 # Gmail IMAP Config
 # ---------------------------
