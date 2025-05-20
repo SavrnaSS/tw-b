@@ -50,7 +50,7 @@ def setup_driver():
 
     driver = uc.Chrome(
         options=options,
-        driver_executable_path="/usr/bin/chromedriver",
+        driver_executable_path="chromedriver",
         headless=True
     )
     # stealth
