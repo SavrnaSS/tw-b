@@ -5,7 +5,6 @@ import re
 import imaplib
 import email as email_module
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
@@ -32,6 +31,7 @@ def notify_captcha():
 
 def setup_driver():
     options = Options()
+    # point to the headless Chromium binary
     options.binary_location = "/usr/bin/chromium-browser"
     options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
@@ -44,16 +44,18 @@ def setup_driver():
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/114.0.0.0 Safari/537.36"
     )
-    # authenticated proxy
+    # apply authenticated proxy
     proxy = f"{PROXY_HOST}:{PROXY_PORT}"
     options.add_argument(f"--proxy-server=http://{PROXY_USER}:{PROXY_PASS}@{proxy}")
 
+    # specify both driver and browser executable paths
     driver = uc.Chrome(
         options=options,
-        driver_executable_path="chromedriver",
-        headless=True
+        driver_executable_path="/usr/lib/chromium-browser/chromedriver",
+        browser_executable_path="/usr/bin/chromium-browser"
     )
-    # stealth
+
+    # stealth: hide webdriver flag
     driver.execute_cdp_cmd(
         "Page.addScriptToEvaluateOnNewDocument",
         {"source": "Object.defineProperty(navigator, 'webdriver', {get: () => undefined});"}
@@ -102,12 +104,9 @@ def get_latest_otp_imap():
         mail.login(GMAIL_EMAIL, GMAIL_PASSWORD)
         mail.select("inbox")
         status, data = mail.search(None, 'UNSEEN', 'X-GM-RAW', '"newer_than:2m confirmation code"')
-        if status != "OK":
+        if status != "OK" or not data[0]:
             return None
         ids = data[0].split()
-        if not ids:
-            return None
-
         msgs = []
         for eid in ids:
             _, md = mail.fetch(eid, "(RFC822)")
@@ -124,7 +123,6 @@ def get_latest_otp_imap():
                     body += part.get_payload(decode=True).decode(errors="ignore")
         else:
             body = m.get_payload(decode=True).decode(errors="ignore")
-
         match = re.search(r"\b(\d{6,12})\b", body)
         return match.group(1) if match else None
     except Exception as e:
@@ -162,17 +160,16 @@ def handle_locked_account(driver):
 def login_twitter(driver, user, pwd):
     wait = WebDriverWait(driver, 60)
     driver.get("https://twitter.com/login")
-    # enter username
     u = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "input[name='text']")))
     u.send_keys(user)
     wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='Next']"))).click()
     time.sleep(2)
-    # enter password
+
     p = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "input[name='password']")))
     p.send_keys(pwd)
     wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='Log in']"))).click()
     time.sleep(5)
-    # check for OTP
+
     try:
         wait.until(EC.presence_of_element_located((By.XPATH, "//*[contains(text(),'Check your email')]")))
         otp = get_latest_otp_imap()
@@ -183,7 +180,7 @@ def login_twitter(driver, user, pwd):
             time.sleep(5)
     except TimeoutException:
         pass
-    # check for locked account
+
     try:
         if driver.find_elements(By.XPATH, "//*[contains(text(),'locked')]"):
             handle_locked_account(driver)
